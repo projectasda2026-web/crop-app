@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 # =========================
 st.set_page_config(page_title="Crop & Soil Insight", layout="centered")
 
-st.title("🌾 Crop Recommendation & Soil Insight System")
+st.title("🌾Smart Crop Recommendation & Soil Insight System")
 
 # =========================
 # LOAD MODEL & LABELS
@@ -18,7 +18,7 @@ model = pickle.load(open('crop_model.pkl', 'rb'))
 labels = pickle.load(open('labels.pkl', 'rb'))
 
 # =========================
-# LOAD DATASET (for dynamic range)
+# LOAD DATASET (for safe input range)
 # =========================
 df = pd.read_csv('Crop_recommendation (1).csv')
 
@@ -27,25 +27,22 @@ P_min, P_max = df['P'].min(), df['P'].max()
 K_min, K_max = df['K'].min(), df['K'].max()
 
 # =========================
-# INPUT SECTION
+# INPUT SECTION (MANUAL ENTRY)
 # =========================
 st.header("🌱 Enter Soil & Environmental Parameters")
 
-st.sidebar.header("Input Values")
+st.info("Enter values based on your soil test report")
 
-st.sidebar.info(f"N range: {N_min} - {N_max}")
-st.sidebar.info(f"P range: {P_min} - {P_max}")
-st.sidebar.info(f"K range: {K_min} - {K_max}")
+N = st.number_input("Nitrogen (N)", float(N_min), float(N_max), float(N_min), step=1.0)
+P = st.number_input("Phosphorus (P)", float(P_min), float(P_max), float(P_min), step=1.0)
+K = st.number_input("Potassium (K)", float(K_min), float(K_max), float(K_min), step=1.0)
 
-N = st.sidebar.number_input("Nitrogen (N)", float(N_min), float(N_max), float(N_min))
-P = st.sidebar.number_input("Phosphorus (P)", float(P_min), float(P_max), float(P_min))
-K = st.sidebar.number_input("Potassium (K)", float(K_min), float(K_max), float(K_min))
+temperature = st.number_input("Temperature (°C)", 0.0, 50.0, 25.0, step=0.1)
+humidity = st.number_input("Humidity (%)", 0.0, 100.0, 50.0, step=0.1)
+ph = st.number_input("pH", 0.0, 14.0, 6.5, step=0.1)
+rainfall = st.number_input("Rainfall (mm)", 0.0, 300.0, 100.0, step=0.1)
 
-temperature = st.sidebar.slider("Temperature (°C)", 0.0, 50.0, 25.0)
-humidity = st.sidebar.slider("Humidity (%)", 0.0, 100.0, 50.0)
-ph = st.sidebar.slider("pH", 0.0, 14.0, 6.5)
-rainfall = st.sidebar.slider("Rainfall (mm)", 0.0, 300.0, 100.0)
-
+# Create input dataframe
 input_df = pd.DataFrame([[N, P, K, temperature, humidity, ph, rainfall]],
                         columns=['N','P','K','temperature','humidity','ph','rainfall'])
 
@@ -101,9 +98,7 @@ if st.button("🔍 Predict"):
     if N < 40:
         issues.append("Low Nitrogen")
         suggestions.append("Apply urea or nitrogen-rich fertilizer")
-    elif 40 <= N <= 100:
-        issues.append("Optimal Nitrogen")
-    else:
+    elif N > 100:
         issues.append("Excess Nitrogen")
         suggestions.append("Reduce nitrogen fertilizer")
 
@@ -111,9 +106,7 @@ if st.button("🔍 Predict"):
     if P < 30:
         issues.append("Low Phosphorus")
         suggestions.append("Apply DAP")
-    elif 30 <= P <= 80:
-        issues.append("Optimal Phosphorus")
-    else:
+    elif P > 80:
         issues.append("Excess Phosphorus")
         suggestions.append("Reduce phosphorus usage")
 
@@ -121,9 +114,7 @@ if st.button("🔍 Predict"):
     if K < 30:
         issues.append("Low Potassium")
         suggestions.append("Apply potash fertilizer")
-    elif 30 <= K <= 70:
-        issues.append("Optimal Potassium")
-    else:
+    elif K > 70:
         issues.append("Excess Potassium")
         suggestions.append("Reduce potassium fertilizer")
 
