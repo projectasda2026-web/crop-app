@@ -95,26 +95,26 @@ if st.button("🔍 Predict"):
     suggestions = []
 
     # Nitrogen
-    if N < 40:
+    if N < 50:
         issues.append("Low Nitrogen")
         suggestions.append("Apply urea or nitrogen-rich fertilizer")
-    elif N > 100:
+    elif N > 120:
         issues.append("Excess Nitrogen")
         suggestions.append("Reduce nitrogen fertilizer")
 
     # Phosphorus
-    if P < 30:
+    if P < 40:
         issues.append("Low Phosphorus")
         suggestions.append("Apply DAP")
-    elif P > 80:
+    elif P > 100:
         issues.append("Excess Phosphorus")
         suggestions.append("Reduce phosphorus usage")
 
     # Potassium
-    if K < 30:
+    if K < 40:
         issues.append("Low Potassium")
         suggestions.append("Apply potash fertilizer")
-    elif K > 70:
+    elif K > 80:
         issues.append("Excess Potassium")
         suggestions.append("Reduce potassium fertilizer")
 
@@ -122,7 +122,7 @@ if st.button("🔍 Predict"):
     if ph < 5.5:
         issues.append("Acidic Soil")
         suggestions.append("Apply lime to increase pH")
-    elif ph > 7:
+    elif ph > 7.5:
         issues.append("Alkaline Soil")
         suggestions.append("Add organic matter")
 
