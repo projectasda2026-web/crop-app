@@ -2,116 +2,147 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import pickle
-import seaborn as sns
 import matplotlib.pyplot as plt
 
-# Load model
+# =========================
+# PAGE CONFIG
+# =========================
+st.set_page_config(page_title="Crop & Soil Insight", layout="centered")
+
+st.title("🌾 Crop Recommendation & Soil Insight System")
+
+# =========================
+# LOAD MODEL & LABELS
+# =========================
 model = pickle.load(open('crop_model.pkl', 'rb'))
+labels = pickle.load(open('labels.pkl', 'rb'))
 
-# Title
-st.title("🌾 Smart Crop Recommendation System")
-st.write("Enter soil and environmental conditions")
+# =========================
+# LOAD DATASET (for dynamic range)
+# =========================
+df = pd.read_csv('Crop_recommendation (1).csv')
 
-# Sidebar inputs
-st.sidebar.header("Input Parameters")
+N_min, N_max = df['N'].min(), df['N'].max()
+P_min, P_max = df['P'].min(), df['P'].max()
+K_min, K_max = df['K'].min(), df['K'].max()
 
-def user_input():
-    N = st.sidebar.slider("Nitrogen", 0, 150, 50)
-    P = st.sidebar.slider("Phosphorus", 0, 150, 50)
-    K = st.sidebar.slider("Potassium", 0, 150, 50)
-    temperature = st.sidebar.slider("Temperature (°C)", 0.0, 50.0, 25.0)
-    humidity = st.sidebar.slider("Humidity (%)", 0.0, 100.0, 50.0)
-    ph = st.sidebar.slider("pH", 0.0, 14.0, 6.5)
-    rainfall = st.sidebar.slider("Rainfall (mm)", 0.0, 300.0, 100.0)
+# =========================
+# INPUT SECTION
+# =========================
+st.header("🌱 Enter Soil & Environmental Parameters")
 
-    data = {
-        'N': N,
-        'P': P,
-        'K': K,
-        'temperature': temperature,
-        'humidity': humidity,
-        'ph': ph,
-        'rainfall': rainfall
-    }
+st.sidebar.header("Input Values")
 
-    return pd.DataFrame([data])
+st.sidebar.info(f"N range: {N_min} - {N_max}")
+st.sidebar.info(f"P range: {P_min} - {P_max}")
+st.sidebar.info(f"K range: {K_min} - {K_max}")
 
-input_df = user_input()
+N = st.sidebar.number_input("Nitrogen (N)", float(N_min), float(N_max), float(N_min))
+P = st.sidebar.number_input("Phosphorus (P)", float(P_min), float(P_max), float(P_min))
+K = st.sidebar.number_input("Potassium (K)", float(K_min), float(K_max), float(K_min))
+
+temperature = st.sidebar.slider("Temperature (°C)", 0.0, 50.0, 25.0)
+humidity = st.sidebar.slider("Humidity (%)", 0.0, 100.0, 50.0)
+ph = st.sidebar.slider("pH", 0.0, 14.0, 6.5)
+rainfall = st.sidebar.slider("Rainfall (mm)", 0.0, 300.0, 100.0)
+
+input_df = pd.DataFrame([[N, P, K, temperature, humidity, ph, rainfall]],
+                        columns=['N','P','K','temperature','humidity','ph','rainfall'])
 
 st.subheader("📊 Input Data")
 st.write(input_df)
 
-# Prediction
-if st.button("Predict Crop"):
+# =========================
+# PREDICTION
+# =========================
+if st.button("🔍 Predict"):
 
     probs = model.predict_proba(input_df)[0]
 
-    # Load original labels
-    df = pd.read_csv('Crop_recommendation (1).csv')
-    labels = sorted(df['label'].unique())
-
-    # Top 3
+    # Top 3 crops
     top3_idx = np.argsort(probs)[-3:][::-1]
     top3_crops = [labels[i] for i in top3_idx]
 
-    result_df = pd.DataFrame({
+    # =========================
+    # OUTPUT 1: TOP-3 CROPS
+    # =========================
+    st.subheader("🌾 Top-3 Recommended Crops")
+
+    for i, crop in enumerate(top3_crops):
+        st.write(f"{i+1}. {crop}")
+
+    # =========================
+    # OUTPUT 2: PROBABILITIES
+    # =========================
+    st.subheader("📊 Prediction Probabilities")
+
+    prob_df = pd.DataFrame({
         "Crop": top3_crops,
         "Probability": probs[top3_idx]
     })
 
-    st.subheader("🌾 Top 3 Recommended Crops")
-    st.table(result_df)
+    st.table(prob_df)
 
-    # Plot
+    # Chart
     fig, ax = plt.subplots()
-    sns.barplot(x="Crop", y="Probability", data=result_df, ax=ax)
-    plt.xticks(rotation=45)
+    ax.bar(prob_df["Crop"], prob_df["Probability"])
+    plt.xticks(rotation=30)
     st.pyplot(fig)
 
-    # Soil analysis
-    issues, actions = [], []
+    # =========================
+    # OUTPUT 3: SOIL CONDITION
+    # =========================
+    st.subheader("🌱 Soil Condition & Suggestions")
 
-    N = input_df['N'][0]
-    P = input_df['P'][0]
-    K = input_df['K'][0]
-    ph_val = input_df['ph'][0]
+    issues = []
+    suggestions = []
 
-    if N < 50:
-        issues.append("Nitrogen is low")
-        actions.append("Apply urea")
-    elif N > 120:
-        issues.append("Nitrogen is high")
-        actions.append("Reduce nitrogen fertilizer")
-
-    if P < 40:
-        issues.append("Phosphorus is low")
-        actions.append("Add DAP")
-    elif P > 100:
-        issues.append("Phosphorus is high")
-        actions.append("Reduce phosphorus")
-
-    if K < 40:
-        issues.append("Potassium is low")
-        actions.append("Apply potash")
-    elif K > 80:
-        issues.append("Potassium is high")
-        actions.append("Reduce potassium")
-
-    if ph_val < 5.5:
-        issues.append("Soil acidic")
-        actions.append("Apply lime")
-    elif ph_val > 7:
-        issues.append("Soil alkaline")
-        actions.append("Add organic matter")
-
-    st.subheader("🌱 Soil Analysis")
-
-    if issues:
-        for i in issues:
-            st.warning(i)
+    # Nitrogen
+    if N < 40:
+        issues.append("Low Nitrogen")
+        suggestions.append("Apply urea or nitrogen-rich fertilizer")
+    elif 40 <= N <= 100:
+        issues.append("Optimal Nitrogen")
     else:
-        st.success("Soil conditions are good")
+        issues.append("Excess Nitrogen")
+        suggestions.append("Reduce nitrogen fertilizer")
 
-    st.subheader("✅ Recommendations")
-    for a in actions:
-        st.write("- ", a)
+    # Phosphorus
+    if P < 30:
+        issues.append("Low Phosphorus")
+        suggestions.append("Apply DAP")
+    elif 30 <= P <= 80:
+        issues.append("Optimal Phosphorus")
+    else:
+        issues.append("Excess Phosphorus")
+        suggestions.append("Reduce phosphorus usage")
+
+    # Potassium
+    if K < 30:
+        issues.append("Low Potassium")
+        suggestions.append("Apply potash fertilizer")
+    elif 30 <= K <= 70:
+        issues.append("Optimal Potassium")
+    else:
+        issues.append("Excess Potassium")
+        suggestions.append("Reduce potassium fertilizer")
+
+    # pH
+    if ph < 5.5:
+        issues.append("Acidic Soil")
+        suggestions.append("Apply lime to increase pH")
+    elif ph > 7:
+        issues.append("Alkaline Soil")
+        suggestions.append("Add organic matter")
+
+    # Display results
+    if issues:
+        st.write("### ⚠️ Issues Detected")
+        for i in issues:
+            st.write("-", i)
+
+        st.write("### ✅ Suggestions")
+        for s in suggestions:
+            st.write("-", s)
+    else:
+        st.success("Soil conditions are optimal. No improvements needed.")
